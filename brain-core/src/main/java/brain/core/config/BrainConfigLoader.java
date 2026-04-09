@@ -3,7 +3,6 @@ package brain.core.config;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.toml.TomlFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 

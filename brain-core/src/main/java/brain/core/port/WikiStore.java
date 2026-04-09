@@ -1,7 +1,6 @@
 package brain.core.port;
 
 import brain.core.model.WikiPage;
-
 import java.util.List;
 import java.util.Optional;
 

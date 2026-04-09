@@ -2,11 +2,9 @@ package brain.core.config;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BrainConfigLoaderTest {
@@ -44,12 +42,9 @@ class BrainConfigLoaderTest {
 
         BrainConfig config = BrainConfigLoader.load(configPath);
 
-        assertThat(config.wikiRoot())
-            .isEqualTo(Path.of(System.getProperty("user.home"), "brain/wiki"));
-        assertThat(config.models().extractionModel())
-            .isEqualTo("claude-haiku-4-5-20251001");
-        assertThat(config.models().wikiWriteModel())
-            .isEqualTo("claude-sonnet-4-6");
+        assertThat(config.wikiRoot()).isEqualTo(Path.of(System.getProperty("user.home"), "brain/wiki"));
+        assertThat(config.models().extractionModel()).isEqualTo("claude-haiku-4-5-20251001");
+        assertThat(config.models().wikiWriteModel()).isEqualTo("claude-sonnet-4-6");
         assertThat(config.maxBfsHops()).isEqualTo(3);
         assertThat(config.maxContextTokens()).isEqualTo(2000);
         assertThat(config.godNodesTopN()).isEqualTo(10);

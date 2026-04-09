@@ -4,7 +4,6 @@ import brain.core.model.GraphEdge;
 import brain.core.model.GraphNode;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultWeightedEdge;
-
 import java.util.List;
 import java.util.Optional;
 
