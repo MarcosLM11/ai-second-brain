@@ -28,12 +28,9 @@ class FrontmatterParserTest {
 
         assertThat(fm).containsEntry("title", "JWT Verification");
         assertThat(fm).containsEntry("type", "concept");
-        assertThat(fm).extractingByKey("aliases").asList()
-            .containsExactly("JWT", "JSON Web Token");
-        assertThat(fm).extractingByKey("tags").asList()
-            .containsExactly("security", "authentication");
-        assertThat(fm).extractingByKey("sources").asList()
-            .containsExactly("sources/rfc7519");
+        assertThat(fm).extractingByKey("aliases").asList().containsExactly("JWT", "JSON Web Token");
+        assertThat(fm).extractingByKey("tags").asList().containsExactly("security", "authentication");
+        assertThat(fm).extractingByKey("sources").asList().containsExactly("sources/rfc7519");
         assertThat(fm).containsKey("created");
         assertThat(fm).containsKey("updated");
     }

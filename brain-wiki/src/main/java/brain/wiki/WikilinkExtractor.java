@@ -44,7 +44,7 @@ public class WikilinkExtractor {
                 // Obsidian format: [[page|alias]] — the page reference is the part BEFORE |.
                 // When an alias is present, getText() holds the page reference (first part).
                 // When there is no alias, getLink() holds the only part (the page reference).
-                String pageRef = link.getText().length() > 0
+                String pageRef = !link.getText().isEmpty()
                     ? link.getText().toString()
                     : link.getLink().toString();
                 links.add(pageRef);
