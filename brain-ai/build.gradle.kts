@@ -13,4 +13,6 @@ dependencies {
     implementation(project(":brain-core"))
     implementation(libs.spring.boot.starter)
     implementation(libs.spring.ai.anthropic.starter)
+
+    testImplementation(libs.mockito.junit.jupiter)
 }
