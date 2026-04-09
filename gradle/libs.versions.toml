@@ -1,0 +1,54 @@
+[versions]
+spring-boot               = "3.4.5"
+spring-ai                 = "1.1.4"
+spring-dependency-mgmt    = "1.1.7"
+jgrapht                   = "1.5.2"
+picocli                   = "4.7.6"
+jackson                   = "2.18.2"
+flexmark                  = "0.64.8"
+sqlite-jdbc               = "3.47.1.0"
+pdfbox                    = "3.0.3"
+junit                     = "5.11.4"
+assertj                   = "3.27.3"
+mockito                   = "5.15.2"
+
+[libraries]
+# Spring Boot
+spring-boot-starter            = { module = "org.springframework.boot:spring-boot-starter",            version.ref = "spring-boot" }
+spring-boot-starter-test       = { module = "org.springframework.boot:spring-boot-starter-test",       version.ref = "spring-boot" }
+
+# Spring AI (versions resolved via BOM in brain-server)
+spring-ai-bom                  = { module = "org.springframework.ai:spring-ai-bom",                                version.ref = "spring-ai" }
+spring-ai-anthropic-starter    = { module = "org.springframework.ai:spring-ai-starter-model-anthropic" }
+spring-ai-mcp-server-starter   = { module = "org.springframework.ai:spring-ai-starter-mcp-server" }
+
+# Graph
+jgrapht-core                   = { module = "org.jgrapht:jgrapht-core",                               version.ref = "jgrapht" }
+
+# CLI
+picocli                        = { module = "info.picocli:picocli",                                    version.ref = "picocli" }
+picocli-spring-boot-starter    = { module = "info.picocli:picocli-spring-boot-starter",               version.ref = "picocli" }
+
+# Jackson
+jackson-databind               = { module = "com.fasterxml.jackson.core:jackson-databind",            version.ref = "jackson" }
+jackson-dataformat-yaml        = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson" }
+jackson-dataformat-toml        = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-toml", version.ref = "jackson" }
+
+# Markdown
+flexmark-all                   = { module = "com.vladsch.flexmark:flexmark-all",                       version.ref = "flexmark" }
+
+# Database
+sqlite-jdbc                    = { module = "org.xerial:sqlite-jdbc",                                  version.ref = "sqlite-jdbc" }
+
+# PDF
+pdfbox                         = { module = "org.apache.pdfbox:pdfbox",                               version.ref = "pdfbox" }
+
+# Testing
+junit-bom                      = { module = "org.junit:junit-bom",                                     version.ref = "junit" }
+junit-jupiter                  = { module = "org.junit.jupiter:junit-jupiter" }
+assertj                        = { module = "org.assertj:assertj-core",                                version.ref = "assertj" }
+mockito-junit-jupiter          = { module = "org.mockito:mockito-junit-jupiter",                       version.ref = "mockito" }
+
+[plugins]
+spring-boot               = { id = "org.springframework.boot",      version.ref = "spring-boot" }
+spring-dependency-mgmt    = { id = "io.spring.dependency-management", version.ref = "spring-dependency-mgmt" }

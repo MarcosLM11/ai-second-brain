@@ -1,0 +1,26 @@
+[paths]
+wiki_root   = "~/brain/wiki"
+raw_sources = "~/brain/raw"
+graph_db    = "~/brain/brain_graph.db"
+schema_file = "~/brain/SCHEMA.md"
+
+[ai]
+# La API key se lee de variable de entorno, nunca hardcodeada
+anthropic_api_key_env = "ANTHROPIC_API_KEY"
+
+[models]
+extraction = "claude-haiku-4-5-20251001"
+wiki_write = "claude-sonnet-4-6"
+query      = "claude-sonnet-4-6"
+lint       = "claude-haiku-4-5-20251001"
+
+[graph]
+max_bfs_hops       = 3
+max_context_tokens = 2000
+god_nodes_top_n    = 10
+community_count    = 5
+surprise_min_conf  = 0.7
+
+[capture]
+enabled            = true
+min_session_tokens = 500

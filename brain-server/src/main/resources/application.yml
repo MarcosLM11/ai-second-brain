@@ -1,0 +1,27 @@
+spring:
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      chat:
+        options:
+          model: claude-sonnet-4-6
+          max-tokens: 8192
+    mcp:
+      server:
+        name: brain
+        version: 1.0.0
+
+brain:
+  wiki-root: ${BRAIN_WIKI_ROOT:~/brain/wiki}
+  raw-sources: ${BRAIN_RAW_SOURCES:~/brain/raw}
+  graph-db: ${BRAIN_GRAPH_DB:~/brain/brain_graph.db}
+  schema-file: ${BRAIN_SCHEMA:~/brain/SCHEMA.md}
+  ai:
+    extraction-model: claude-haiku-4-5-20251001
+    wiki-write-model: claude-sonnet-4-6
+    query-model: claude-sonnet-4-6
+    lint-model: claude-haiku-4-5-20251001
+  graph:
+    max-bfs-hops: 3
+    max-context-tokens: 2000
+    god-nodes-top-n: 10
