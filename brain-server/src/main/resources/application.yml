@@ -10,6 +10,7 @@ spring:
       server:
         name: brain
         version: 1.0.0
+        type: SYNC
 
 brain:
   wiki-root: ${BRAIN_WIKI_ROOT:~/brain/wiki}

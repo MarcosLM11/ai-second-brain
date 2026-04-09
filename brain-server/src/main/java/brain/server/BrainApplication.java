@@ -1,12 +1,24 @@
 package brain.server;
 
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
 
 @SpringBootApplication
-public class BrainApplication {
+@Command(
+    name = "brain",
+    subcommands = {ServeCommand.class},
+    mixinStandardHelpOptions = true,
+    description = "AI Second Brain — personal knowledge system"
+)
+public class BrainApplication implements Runnable {
 
-    void main(String[] args) {
-        SpringApplication.run(BrainApplication.class, args);
+    public static void main(String[] args) {
+        System.exit(new CommandLine(new BrainApplication()).execute(args));
+    }
+
+    @Override
+    public void run() {
+        CommandLine.usage(this, System.err);
     }
 }
