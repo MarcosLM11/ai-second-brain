@@ -5,12 +5,14 @@ import brain.core.model.EdgeType;
 import brain.core.model.GraphEdge;
 import brain.core.model.GraphNode;
 import brain.core.model.NodeType;
+import brain.core.model.SurpriseEdge;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -158,6 +160,83 @@ class GraphAnalyzerTest {
 
         long distinctCommunities = communityMap.values().stream().distinct().count();
         assertThat(distinctCommunities).isEqualTo(2);
+    }
+
+    // ---- findSurprises ----
+
+    /**
+     * Fixture: community 0 = {a, b}, community 1 = {c, d}.
+     * Intra: a→b (conf=1.0), c→d (conf=1.0)
+     * Cross high: a→c (conf=0.9), b→d (conf=0.8)
+     * Cross low:  a→d (conf=0.5), b→c (conf=0.3)
+     */
+    private GraphStoreSqlite buildSurpriseStore(Path dir) {
+        var s = new GraphStoreSqlite(dir.resolve("surprise.db"));
+        Instant now = Instant.now();
+        for (String id : List.of("a", "b", "c", "d")) {
+            s.saveNode(new GraphNode(id, id, NodeType.CONCEPT, -1, now, now));
+        }
+        s.insertEdges(List.of(
+            new GraphEdge("a", "b", EdgeType.LINKS_TO, EdgeOrigin.EXTRACTED, 1.0, now), // intra
+            new GraphEdge("c", "d", EdgeType.LINKS_TO, EdgeOrigin.EXTRACTED, 1.0, now), // intra
+            new GraphEdge("a", "c", EdgeType.LINKS_TO, EdgeOrigin.EXTRACTED, 0.9, now), // cross high
+            new GraphEdge("b", "d", EdgeType.LINKS_TO, EdgeOrigin.EXTRACTED, 0.8, now), // cross high
+            new GraphEdge("a", "d", EdgeType.LINKS_TO, EdgeOrigin.EXTRACTED, 0.5, now), // cross low
+            new GraphEdge("b", "c", EdgeType.LINKS_TO, EdgeOrigin.EXTRACTED, 0.3, now)  // cross low
+        ));
+        return s;
+    }
+
+    private Map<String, Integer> surpriseCommunities() {
+        return Map.of("a", 0, "b", 0, "c", 1, "d", 1);
+    }
+
+    @Test
+    void aristasIntraCommunityNoSonSorpresas() {
+        var s = buildSurpriseStore(tempDir);
+        var graph = s.load();
+        var surprises = analyzer.findSurprises(graph, surpriseCommunities(), 0.7);
+
+        var fromTo = surprises.stream()
+            .map(e -> e.from() + "→" + e.to())
+            .toList();
+        assertThat(fromTo).doesNotContain("a→b", "c→d");
+    }
+
+    @Test
+    void aristasCrossConBajaConfianzaNoSonSorpresas() {
+        var s = buildSurpriseStore(tempDir);
+        var graph = s.load();
+        var surprises = analyzer.findSurprises(graph, surpriseCommunities(), 0.7);
+
+        var fromTo = surprises.stream()
+            .map(e -> e.from() + "→" + e.to())
+            .toList();
+        assertThat(fromTo).doesNotContain("a→d", "b→c");
+    }
+
+    @Test
+    void aristasCrossConAltaConfianzaSonSorpresas() {
+        var s = buildSurpriseStore(tempDir);
+        var graph = s.load();
+        var surprises = analyzer.findSurprises(graph, surpriseCommunities(), 0.7);
+
+        var fromTo = surprises.stream()
+            .map(e -> e.from() + "→" + e.to())
+            .toList();
+        assertThat(fromTo).containsExactlyInAnyOrder("a→c", "b→d");
+    }
+
+    @Test
+    void resultadoOrdenadoPorPesoDescendente() {
+        var s = buildSurpriseStore(tempDir);
+        var graph = s.load();
+        var surprises = analyzer.findSurprises(graph, surpriseCommunities(), 0.7);
+
+        assertThat(surprises).hasSize(2);
+        assertThat(surprises.get(0).weight()).isGreaterThanOrEqualTo(surprises.get(1).weight());
+        assertThat(surprises.get(0).weight()).isEqualTo(0.9);
+        assertThat(surprises.get(1).weight()).isEqualTo(0.8);
     }
 
     @Test

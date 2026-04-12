@@ -2,12 +2,14 @@ package brain.graph;
 
 import brain.core.model.GraphNode;
 import brain.core.model.NodeType;
+import brain.core.model.SurpriseEdge;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.clustering.GirvanNewmanClustering;
 import org.jgrapht.alg.scoring.BetweennessCentrality;
 import org.jgrapht.graph.DefaultWeightedEdge;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,5 +71,36 @@ public class GraphAnalyzer {
         }
 
         return communityMap;
+    }
+
+    /**
+     * Finds surprise edges: cross-community aristas with confidence ≥ {@code minConfidence},
+     * sorted by weight descending.
+     *
+     * @param graph       the JGraphT graph (edge weights = confidence)
+     * @param communities map of nodeId → communityId, as returned by {@link #detectCommunities}
+     * @param minConfidence minimum confidence threshold (e.g. 0.7)
+     */
+    public List<SurpriseEdge> findSurprises(
+            Graph<String, DefaultWeightedEdge> graph,
+            Map<String, Integer> communities,
+            double minConfidence) {
+
+        return graph.edgeSet().stream()
+            .filter(edge -> {
+                String from = graph.getEdgeSource(edge);
+                String to   = graph.getEdgeTarget(edge);
+                Integer cFrom = communities.get(from);
+                Integer cTo   = communities.get(to);
+                if (cFrom == null || cTo == null) return false;
+                return !cFrom.equals(cTo) && graph.getEdgeWeight(edge) >= minConfidence;
+            })
+            .map(edge -> new SurpriseEdge(
+                graph.getEdgeSource(edge),
+                graph.getEdgeTarget(edge),
+                graph.getEdgeWeight(edge)
+            ))
+            .sorted(Comparator.comparingDouble(SurpriseEdge::weight).reversed())
+            .toList();
     }
 }
