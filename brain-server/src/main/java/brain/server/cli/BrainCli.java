@@ -7,7 +7,7 @@ import java.nio.file.Path;
 
 @Command(
     name = "brain",
-    subcommands = {ServeCommand.class, ContextCommand.class},
+    subcommands = {ServeCommand.class, ContextCommand.class, IngestCommand.class},
     mixinStandardHelpOptions = true,
     version = "brain 1.0.0",
     description = "AI Second Brain — personal knowledge management system"

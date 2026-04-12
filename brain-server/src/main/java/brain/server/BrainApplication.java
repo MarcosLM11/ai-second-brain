@@ -8,6 +8,10 @@ import picocli.CommandLine;
 public class BrainApplication {
 
     public static void main(String[] args) {
-        System.exit(new CommandLine(new BrainCli()).execute(args));
+        int exitCode = new CommandLine(new BrainCli()).execute(args);
+        if (exitCode != 0) {
+            System.exit(exitCode);
+        }
+        // On success, let the JVM exit naturally so async Virtual Threads can complete.
     }
 }

@@ -9,6 +9,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/marcos/Projects/Software-Engineer/ai-second-brain/session-end.sh"
+          }
+        ]
+      }
     ]
   }
 }
