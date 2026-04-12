@@ -9,9 +9,10 @@ Call `schema_read` to load the wiki taxonomy (node types, frontmatter fields, wi
 
 ## 2. Hash and cache check
 Call `source_hash` with the source identifier (the URL or file path).
-Then call `cache_check` with that hash.
-- If the result is **"hit"**: stop and report "Already ingested — skipping." Do not proceed.
-- If the result is **"miss"**: continue.
+Then call `cache_check` with that hash. The response is JSON:
+- `{"hit":false}` → continue to step 3.
+- `{"hit":true,"lastProcessed":"<ISO-8601>"}` → stop immediately. Report to the user:
+  "Ya procesada el <lastProcessed>. No se crearán páginas duplicadas." Do not proceed further.
 
 ## 3. Fetch content
 - If the source starts with `https://`: call `fetch_url`.
@@ -66,8 +67,13 @@ Call `cache_set` with:
 - `sha256`: the hash from step 2
 - `metadata`: a JSON string like `{"source":"<url-or-path>","pages":["<pageId>",...],"date":"<YYYY-MM-DD>"}`
 
-## 10. Report to user
+## 10. Build knowledge graph
+Call `graph_build` with `force=false`.
+This updates the graph incrementally with the new wiki pages written in step 6.
+
+## 11. Report to user
 Summarise what was done:
 - Pages created (with pageIds)
 - Pages updated (with pageIds)
 - Confirm log and cache entries written
+- Confirm graph updated (nodes and edges from `graph_build` output)
