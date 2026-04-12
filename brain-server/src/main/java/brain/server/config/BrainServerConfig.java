@@ -9,6 +9,7 @@ import brain.graph.GraphReportWriter;
 import brain.graph.GraphStoreSqlite;
 import brain.graph.GraphTraversal;
 import brain.wiki.HttpFetcher;
+import brain.wiki.LintService;
 import brain.wiki.LogAppender;
 import brain.wiki.WikiStoreFs;
 import org.springframework.beans.factory.annotation.Value;
@@ -71,6 +72,11 @@ public class BrainServerConfig {
     @Bean
     public GraphReportWriter graphReportWriter() {
         return new GraphReportWriter(expand(wikiRootRaw));
+    }
+
+    @Bean
+    public LintService lintService() {
+        return new LintService();
     }
 
     public static Path expand(String raw) {

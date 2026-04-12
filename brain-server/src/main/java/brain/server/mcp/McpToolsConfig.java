@@ -11,9 +11,9 @@ public class McpToolsConfig {
     @Bean
     public ToolCallbackProvider brainTools(
             WikiTools wikiTools, SchemaTools schemaTools, LogTools logTools,
-            IngestTools ingestTools, GraphTools graphTools) {
+            IngestTools ingestTools, GraphTools graphTools, LintTools lintTools) {
         return MethodToolCallbackProvider.builder()
-            .toolObjects(wikiTools, schemaTools, logTools, ingestTools, graphTools)
+            .toolObjects(wikiTools, schemaTools, logTools, ingestTools, graphTools, lintTools)
             .build();
     }
 }
