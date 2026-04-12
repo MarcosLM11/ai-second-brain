@@ -1,7 +1,11 @@
 package brain.server.mcp;
 
+import brain.wiki.LintReportWriter;
 import brain.wiki.LintService;
 import brain.wiki.LintService.BrokenLink;
+import brain.wiki.LintService.StructuralReport;
+import brain.wiki.LogAppender;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +20,8 @@ import java.util.stream.Collectors;
 public class LintTools {
 
     private final LintService lintService;
+    private final LintReportWriter lintReportWriter;
+    private final LogAppender logAppender;
 
     @Value("${brain.wiki-root:~/brain/wiki}")
     private String wikiRootRaw;
@@ -29,8 +35,10 @@ public class LintTools {
             : Path.of(wikiRootRaw);
     }
 
-    public LintTools(LintService lintService) {
+    public LintTools(LintService lintService, LintReportWriter lintReportWriter, LogAppender logAppender) {
         this.lintService = lintService;
+        this.lintReportWriter = lintReportWriter;
+        this.logAppender = logAppender;
     }
 
     @Tool(description = """
@@ -61,5 +69,25 @@ public class LintTools {
                 .sorted(Comparator.comparing(BrokenLink::sourcePageId).thenComparing(BrokenLink::target))
                 .map(bl -> "  - [[%s]] in %s".formatted(bl.target(), bl.sourcePageId()))
                 .collect(Collectors.joining("\n"));
+    }
+
+    @Tool(description = """
+        Run a full structural lint on the wiki. Detects:
+        - orphaned pages (no incoming wikilinks from other pages)
+        - broken wikilinks ([[references]] pointing to non-existent pages)
+        - asymmetric backlinks (A links to B but B does not link back to A)
+        Writes HEALTH_REPORT.md to the wiki root and appends an entry to log.md.
+        Returns a JSON object: {orphans: [], brokenLinks: [{sourcePageId, target}], asymmetricLinks: [{from, to}]}
+        """)
+    public String lint_structural() {
+        try {
+            StructuralReport report = lintService.buildStructuralReport(wikiRoot);
+            lintReportWriter.write(report);
+            logAppender.append("lint_structural: %d orphans, %d broken links, %d asymmetric backlinks"
+                .formatted(report.orphans().size(), report.brokenLinks().size(), report.asymmetricLinks().size()));
+            return new ObjectMapper().writeValueAsString(report);
+        } catch (Exception e) {
+            return "Error running structural lint: " + e.getMessage();
+        }
     }
 }

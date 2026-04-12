@@ -1,6 +1,8 @@
 package brain.wiki;
 
+import brain.wiki.LintService.AsymmetricLink;
 import brain.wiki.LintService.BrokenLink;
+import brain.wiki.LintService.StructuralReport;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -139,6 +141,73 @@ class LintServiceTest {
         List<BrokenLink> broken = service.findBrokenLinks(wikiRoot);
 
         assertThat(broken).isEmpty();
+    }
+
+    // ─── findAsymmetricLinks ───────────────────────────────────────────────────
+
+    @Test
+    void detectsAsymmetricLink() throws IOException {
+        write("page-a.md", "# A\n\n[[page-b]]");
+        write("page-b.md", "# B\n\nNo backlink to A.");
+
+        List<AsymmetricLink> asymmetric = service.findAsymmetricLinks(wikiRoot);
+
+        assertThat(asymmetric).hasSize(1);
+        assertThat(asymmetric.getFirst().from()).isEqualTo("page-a");
+        assertThat(asymmetric.getFirst().to()).isEqualTo("page-b");
+    }
+
+    @Test
+    void reciprocalLinksAreNotAsymmetric() throws IOException {
+        write("page-a.md", "# A\n\n[[page-b]]");
+        write("page-b.md", "# B\n\n[[page-a]]");
+
+        List<AsymmetricLink> asymmetric = service.findAsymmetricLinks(wikiRoot);
+
+        assertThat(asymmetric).isEmpty();
+    }
+
+    @Test
+    void brokenLinkIsNotReportedAsAsymmetric() throws IOException {
+        write("page-a.md", "# A\n\n[[ghost]]");
+
+        List<AsymmetricLink> asymmetric = service.findAsymmetricLinks(wikiRoot);
+
+        assertThat(asymmetric).isEmpty();
+    }
+
+    @Test
+    void systemPagesExcludedFromAsymmetricCheck() throws IOException {
+        write("index.md", "# Index\n\n[[page-a]]");
+        write("page-a.md", "# A\n\nNo backlink to index.");
+
+        List<AsymmetricLink> asymmetric = service.findAsymmetricLinks(wikiRoot);
+
+        // index → page-a is excluded because index is a system page
+        assertThat(asymmetric).isEmpty();
+    }
+
+    @Test
+    void selfReferenceNotReportedAsAsymmetric() throws IOException {
+        write("page-a.md", "# A\n\n[[page-a]]");
+
+        List<AsymmetricLink> asymmetric = service.findAsymmetricLinks(wikiRoot);
+
+        assertThat(asymmetric).isEmpty();
+    }
+
+    // ─── buildStructuralReport ─────────────────────────────────────────────────
+
+    @Test
+    void cleanWikiProducesEmptyReport() throws IOException {
+        write("a.md", "[[b]]");
+        write("b.md", "[[a]]");
+
+        StructuralReport report = service.buildStructuralReport(wikiRoot);
+
+        assertThat(report.orphans()).isEmpty();
+        assertThat(report.brokenLinks()).isEmpty();
+        assertThat(report.asymmetricLinks()).isEmpty();
     }
 
     // ─── helpers ───────────────────────────────────────────────────────────────

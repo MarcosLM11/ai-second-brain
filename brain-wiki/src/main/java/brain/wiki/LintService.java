@@ -5,8 +5,10 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -18,6 +20,12 @@ import java.util.stream.Stream;
 public class LintService {
 
     public record BrokenLink(String sourcePageId, String target) {}
+    public record AsymmetricLink(String from, String to) {}
+    public record StructuralReport(
+        List<String> orphans,
+        List<BrokenLink> brokenLinks,
+        List<AsymmetricLink> asymmetricLinks
+    ) {}
 
     private static final Set<String> SYSTEM_PAGES = Set.of("index", "log");
 
@@ -85,6 +93,59 @@ public class LintService {
             }
         }
         return List.copyOf(broken);
+    }
+
+    /**
+     * Returns directed links (A → B) where B does not link back to A.
+     *
+     * <p>System pages (index, log) are excluded. Broken links are skipped
+     * since they are already covered by {@link #findBrokenLinks}.
+     */
+    public List<AsymmetricLink> findAsymmetricLinks(Path wikiRoot) {
+        Path root = wikiRoot.toAbsolutePath().normalize();
+        List<Path> mdFiles = listMdFiles(root);
+
+        Set<String> existingIds = new HashSet<>();
+        Map<String, Set<String>> outgoing = new HashMap<>();
+
+        for (Path file : mdFiles) {
+            String pageId = toPageId(root, file);
+            existingIds.add(pageId);
+            try {
+                String content = Files.readString(file);
+                Set<String> links = new HashSet<>(WikilinkExtractor.extract(content));
+                links.remove(pageId); // ignore self-references
+                outgoing.put(pageId, links);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        List<AsymmetricLink> asymmetric = new ArrayList<>();
+        for (Map.Entry<String, Set<String>> entry : outgoing.entrySet()) {
+            String a = entry.getKey();
+            if (SYSTEM_PAGES.contains(a)) continue;
+            for (String b : entry.getValue()) {
+                if (!existingIds.contains(b)) continue; // skip broken links
+                if (SYSTEM_PAGES.contains(b)) continue;
+                Set<String> bLinks = outgoing.getOrDefault(b, Set.of());
+                if (!bLinks.contains(a)) {
+                    asymmetric.add(new AsymmetricLink(a, b));
+                }
+            }
+        }
+        return List.copyOf(asymmetric);
+    }
+
+    /**
+     * Runs all three structural checks and returns the combined report.
+     */
+    public StructuralReport buildStructuralReport(Path wikiRoot) {
+        return new StructuralReport(
+            findOrphans(wikiRoot),
+            findBrokenLinks(wikiRoot),
+            findAsymmetricLinks(wikiRoot)
+        );
     }
 
     private List<Path> listMdFiles(Path root) {

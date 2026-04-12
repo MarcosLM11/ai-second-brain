@@ -9,6 +9,7 @@ import brain.graph.GraphReportWriter;
 import brain.graph.GraphStoreSqlite;
 import brain.graph.GraphTraversal;
 import brain.wiki.HttpFetcher;
+import brain.wiki.LintReportWriter;
 import brain.wiki.LintService;
 import brain.wiki.LogAppender;
 import brain.wiki.WikiStoreFs;
@@ -77,6 +78,11 @@ public class BrainServerConfig {
     @Bean
     public LintService lintService() {
         return new LintService();
+    }
+
+    @Bean
+    public LintReportWriter lintReportWriter() {
+        return new LintReportWriter(expand(wikiRootRaw));
     }
 
     public static Path expand(String raw) {
