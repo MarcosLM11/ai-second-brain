@@ -8,6 +8,7 @@ import brain.graph.GraphBuilder;
 import brain.graph.GraphReportWriter;
 import brain.graph.GraphStoreSqlite;
 import brain.graph.GraphTraversal;
+import brain.search.SearchIndexer;
 import brain.wiki.HttpFetcher;
 import brain.wiki.LintReportWriter;
 import brain.wiki.LintService;
@@ -83,6 +84,11 @@ public class BrainServerConfig {
     @Bean
     public LintReportWriter lintReportWriter() {
         return new LintReportWriter(expand(wikiRootRaw));
+    }
+
+    @Bean
+    public SearchIndexer searchIndexer() {
+        return new SearchIndexer(expand(graphDbRaw));
     }
 
     public static Path expand(String raw) {
