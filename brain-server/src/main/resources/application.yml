@@ -17,6 +17,7 @@ brain:
   raw-sources: ${BRAIN_RAW_SOURCES:~/brain/raw}
   graph-db: ${BRAIN_GRAPH_DB:~/brain/brain_graph.db}
   schema-file: ${BRAIN_SCHEMA:~/brain/SCHEMA.md}
+  cache-dir: ${BRAIN_CACHE_DIR:~/brain/cache}
   ai:
     extraction-model: claude-haiku-4-5-20251001
     wiki-write-model: claude-sonnet-4-6

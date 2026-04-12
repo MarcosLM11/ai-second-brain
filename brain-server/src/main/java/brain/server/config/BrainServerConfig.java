@@ -1,6 +1,9 @@
 package brain.server.config;
 
+import brain.core.port.CacheStore;
 import brain.core.port.WikiStore;
+import brain.wiki.CacheStoreFs;
+import brain.wiki.HttpFetcher;
 import brain.wiki.LogAppender;
 import brain.wiki.WikiStoreFs;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +18,9 @@ public class BrainServerConfig {
     @Value("${brain.wiki-root:~/brain/wiki}")
     private String wikiRootRaw;
 
+    @Value("${brain.cache-dir:~/brain/cache}")
+    private String cacheDirRaw;
+
     @Bean
     public WikiStore wikiStore() {
         return new WikiStoreFs(expand(wikiRootRaw));
@@ -23,6 +29,16 @@ public class BrainServerConfig {
     @Bean
     public LogAppender logAppender() {
         return new LogAppender(expand(wikiRootRaw));
+    }
+
+    @Bean
+    public HttpFetcher httpFetcher() {
+        return new HttpFetcher();
+    }
+
+    @Bean
+    public CacheStore cacheStore() {
+        return new CacheStoreFs(expand(cacheDirRaw));
     }
 
     public static Path expand(String raw) {
