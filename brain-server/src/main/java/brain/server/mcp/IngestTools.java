@@ -107,12 +107,16 @@ public class IngestTools {
 
     @Tool(description = """
         Check whether a source has already been ingested.
-        Returns "hit" (already ingested, skip) or "miss" (proceed with ingestion).
+        Returns JSON: {"hit":true,"lastProcessed":"<ISO-8601>"} or {"hit":false}.
         """)
     public String cache_check(
         @ToolParam(description = "SHA-256 hex digest from source_hash") String sha256
     ) {
-        return cacheStore.isHit(sha256) ? "hit" : "miss";
+        if (!cacheStore.isHit(sha256)) {
+            return "{\"hit\":false}";
+        }
+        String lastProcessed = cacheStore.getLastProcessed(sha256).orElse("");
+        return "{\"hit\":true,\"lastProcessed\":\"" + lastProcessed + "\"}";
     }
 
     @Tool(description = """

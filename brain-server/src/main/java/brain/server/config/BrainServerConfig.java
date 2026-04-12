@@ -2,12 +2,12 @@ package brain.server.config;
 
 import brain.core.port.CacheStore;
 import brain.core.port.WikiStore;
+import brain.graph.CacheStoreSqlite;
 import brain.graph.GraphAnalyzer;
 import brain.graph.GraphBuilder;
 import brain.graph.GraphReportWriter;
 import brain.graph.GraphStoreSqlite;
 import brain.graph.GraphTraversal;
-import brain.wiki.CacheStoreFs;
 import brain.wiki.HttpFetcher;
 import brain.wiki.LogAppender;
 import brain.wiki.WikiStoreFs;
@@ -45,7 +45,7 @@ public class BrainServerConfig {
 
     @Bean
     public CacheStore cacheStore() {
-        return new CacheStoreFs(expand(cacheDirRaw));
+        return new CacheStoreSqlite(expand(graphDbRaw));
     }
 
     @Bean

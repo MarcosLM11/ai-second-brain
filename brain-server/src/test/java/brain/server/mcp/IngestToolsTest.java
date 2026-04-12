@@ -101,6 +101,26 @@ class IngestToolsTest {
         assertThat(result).startsWith("ERROR");
     }
 
+    // --- cache_check ---
+
+    @Test
+    void cacheCheckReturnsMissJsonWhenNotCached() {
+        when(cacheStore.isHit("abc123")).thenReturn(false);
+
+        assertThat(tools.cache_check("abc123")).isEqualTo("{\"hit\":false}");
+    }
+
+    @Test
+    void cacheCheckReturnsHitJsonWithLastProcessed() {
+        when(cacheStore.isHit("abc123")).thenReturn(true);
+        when(cacheStore.getLastProcessed("abc123")).thenReturn(java.util.Optional.of("2026-04-12T10:00:00Z"));
+
+        String result = tools.cache_check("abc123");
+
+        assertThat(result).contains("\"hit\":true");
+        assertThat(result).contains("\"lastProcessed\":\"2026-04-12T10:00:00Z\"");
+    }
+
     // --- helper ---
 
     private static String sha256Hex(byte[] bytes) throws Exception {
