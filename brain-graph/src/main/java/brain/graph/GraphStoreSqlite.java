@@ -187,6 +187,88 @@ public class GraphStoreSqlite implements GraphStore {
         }
     }
 
+    public boolean isPageCached(String pageId, String sha256) {
+        try (var conn = connect();
+             var ps = conn.prepareStatement(
+                 "SELECT 1 FROM page_cache WHERE page_id = ? AND sha256 = ?")) {
+            ps.setString(1, pageId);
+            ps.setString(2, sha256);
+            try (var rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check page cache: " + pageId, e);
+        }
+    }
+
+    public void updatePageCache(String pageId, String sha256) {
+        try (var conn = connect();
+             var ps = conn.prepareStatement("""
+                 INSERT OR REPLACE INTO page_cache (page_id, sha256, processed_at)
+                 VALUES (?, ?, ?)
+                 """)) {
+            ps.setString(1, pageId);
+            ps.setString(2, sha256);
+            ps.setLong(3, Instant.now().toEpochMilli());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update page cache: " + pageId, e);
+        }
+    }
+
+    public void deleteEdgesFrom(String pageId) {
+        try (var conn = connect();
+             var ps = conn.prepareStatement("DELETE FROM edges WHERE from_id = ?")) {
+            ps.setString(1, pageId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to delete edges from: " + pageId, e);
+        }
+    }
+
+    public void insertEdges(List<GraphEdge> edges) {
+        if (edges.isEmpty()) return;
+        try (var conn = connect()) {
+            conn.setAutoCommit(false);
+            try (var ps = conn.prepareStatement("""
+                INSERT OR REPLACE INTO edges (from_id, to_id, type, origin, confidence, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """)) {
+                for (GraphEdge edge : edges) {
+                    ps.setString(1, edge.from());
+                    ps.setString(2, edge.to());
+                    ps.setString(3, edge.type().name());
+                    ps.setString(4, edge.origin().name());
+                    ps.setDouble(5, edge.confidence());
+                    ps.setLong(6, edge.timestamp().toEpochMilli());
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to insert edges", e);
+        }
+    }
+
+    public void insertNodeIfAbsent(GraphNode node) {
+        try (var conn = connect();
+             var ps = conn.prepareStatement("""
+                 INSERT OR IGNORE INTO nodes (id, label, type, community, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?)
+                 """)) {
+            ps.setString(1, node.id());
+            ps.setString(2, node.label());
+            ps.setString(3, node.type().name());
+            ps.setInt(4, node.community());
+            ps.setLong(5, node.createdAt().toEpochMilli());
+            ps.setLong(6, node.updatedAt().toEpochMilli());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to insert node if absent: " + node.id(), e);
+        }
+    }
+
     public List<GraphEdge> loadEdges() {
         var result = new ArrayList<GraphEdge>();
         try (var conn = connect();

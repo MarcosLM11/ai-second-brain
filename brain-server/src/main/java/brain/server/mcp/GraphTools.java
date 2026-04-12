@@ -2,6 +2,7 @@ package brain.server.mcp;
 
 import brain.core.model.WikiPage;
 import brain.core.port.WikiStore;
+import brain.graph.GraphBuilder;
 import brain.wiki.WikilinkExtractor;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -18,9 +19,26 @@ import java.util.*;
 public class GraphTools {
 
     private final WikiStore wikiStore;
+    private final GraphBuilder graphBuilder;
 
-    public GraphTools(WikiStore wikiStore) {
+    public GraphTools(WikiStore wikiStore, GraphBuilder graphBuilder) {
         this.wikiStore = wikiStore;
+        this.graphBuilder = graphBuilder;
+    }
+
+    @Tool(description = """
+        Build the knowledge graph from wiki wikilinks.
+        Reads all wiki pages, extracts [[wikilinks]], and persists nodes and LINKS_TO edges in SQLite.
+        Incremental by default: only reprocesses pages whose content has changed (SHA-256).
+        Use force=true to reprocess all pages regardless of cache.
+        Returns stats: nodes, edges, and pages processed.
+        """)
+    public String graph_build(
+        @ToolParam(description = "If true, reprocess all pages ignoring the incremental cache") boolean force
+    ) {
+        var stats = graphBuilder.build(force);
+        return "Graph built: %d nodes, %d edges, %d pages processed"
+            .formatted(stats.nodes(), stats.edges(), stats.pagesProcessed());
     }
 
     @Tool(description = """

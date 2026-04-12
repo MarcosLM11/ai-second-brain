@@ -2,6 +2,8 @@ package brain.server.config;
 
 import brain.core.port.CacheStore;
 import brain.core.port.WikiStore;
+import brain.graph.GraphBuilder;
+import brain.graph.GraphStoreSqlite;
 import brain.wiki.CacheStoreFs;
 import brain.wiki.HttpFetcher;
 import brain.wiki.LogAppender;
@@ -21,6 +23,9 @@ public class BrainServerConfig {
     @Value("${brain.cache-dir:~/brain/cache}")
     private String cacheDirRaw;
 
+    @Value("${brain.graph-db:~/brain/brain_graph.db}")
+    private String graphDbRaw;
+
     @Bean
     public WikiStore wikiStore() {
         return new WikiStoreFs(expand(wikiRootRaw));
@@ -39,6 +44,16 @@ public class BrainServerConfig {
     @Bean
     public CacheStore cacheStore() {
         return new CacheStoreFs(expand(cacheDirRaw));
+    }
+
+    @Bean
+    public GraphStoreSqlite graphStoreSqlite() {
+        return new GraphStoreSqlite(expand(graphDbRaw));
+    }
+
+    @Bean
+    public GraphBuilder graphBuilder(WikiStore wikiStore, GraphStoreSqlite graphStoreSqlite) {
+        return new GraphBuilder(wikiStore, graphStoreSqlite);
     }
 
     public static Path expand(String raw) {
