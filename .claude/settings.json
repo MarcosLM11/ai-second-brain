@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/marcos/Projects/Software-Engineer/ai-second-brain/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
