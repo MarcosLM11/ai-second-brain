@@ -30,4 +30,14 @@ public class AiConfig {
             .defaultOptions(AnthropicChatOptions.builder().model(model).build())
             .build();
     }
+
+    @Bean
+    @Qualifier("query")
+    public ChatClient queryChatClient(
+            AnthropicChatModel chatModel,
+            @Value("${brain.ai.query-model:claude-sonnet-4-6}") String model) {
+        return ChatClient.builder(chatModel)
+            .defaultOptions(AnthropicChatOptions.builder().model(model).build())
+            .build();
+    }
 }
