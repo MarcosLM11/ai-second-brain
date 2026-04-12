@@ -1,7 +1,7 @@
 package brain.server.mcp;
 
 import brain.core.port.CacheStore;
-import brain.wiki.HttpFetcher;
+import brain.wiki.UrlFetcher;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -20,10 +20,10 @@ import java.security.NoSuchAlgorithmException;
 @Component
 public class IngestTools {
 
-    private final HttpFetcher httpFetcher;
+    private final UrlFetcher httpFetcher;
     private final CacheStore cacheStore;
 
-    public IngestTools(HttpFetcher httpFetcher, CacheStore cacheStore) {
+    public IngestTools(UrlFetcher httpFetcher, CacheStore cacheStore) {
         this.httpFetcher = httpFetcher;
         this.cacheStore = cacheStore;
     }
@@ -71,20 +71,35 @@ public class IngestTools {
     }
 
     @Tool(description = """
-        Compute the SHA-256 hex digest of a source identifier (URL or file path).
+        Compute the SHA-256 hex digest of the content of a source (file or URL).
+        For local files: hashes the file content bytes.
+        For URLs: downloads the response body and hashes it.
         Use this as the canonical key for cache_check and cache_set.
         """)
     public String source_hash(
-        @ToolParam(description = "Source identifier: URL or absolute file path") String source
+        @ToolParam(description = "HTTPS URL or absolute/~/ path to a .md or .txt file") String source
     ) {
         try {
+            byte[] content;
+            if (source.startsWith("https://")) {
+                content = httpFetcher.fetch(source).getBytes(StandardCharsets.UTF_8);
+            } else {
+                content = Files.readAllBytes(expandPath(source));
+            }
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(source.getBytes(StandardCharsets.UTF_8));
+            byte[] digest = md.digest(content);
             StringBuilder sb = new StringBuilder(64);
             for (byte b : digest) {
                 sb.append(String.format("%02x", b));
             }
             return sb.toString();
+        } catch (IllegalArgumentException | SecurityException e) {
+            return "ERROR: " + e.getMessage();
+        } catch (IOException e) {
+            return "ERROR reading source: " + e.getMessage();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return "ERROR: interrupted";
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 not available", e);
         }

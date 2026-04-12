@@ -14,7 +14,7 @@ import java.time.Duration;
  *   <li>resolves to a loopback, site-local, link-local, or any-local address</li>
  * </ul>
  */
-public class HttpFetcher {
+public class HttpFetcher implements UrlFetcher {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
 

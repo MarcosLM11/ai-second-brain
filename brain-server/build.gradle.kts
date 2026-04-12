@@ -25,4 +25,9 @@ dependencies {
     implementation(libs.pdfbox)
 
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.mockito.junit.jupiter)
+}
+
+tasks.withType<Test> {
+    jvmArgs("-Dnet.bytebuddy.experimental=true")
 }
