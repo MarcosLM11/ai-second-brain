@@ -4,6 +4,7 @@ import brain.core.port.CacheStore;
 import brain.core.port.WikiStore;
 import brain.graph.GraphBuilder;
 import brain.graph.GraphStoreSqlite;
+import brain.graph.GraphTraversal;
 import brain.wiki.CacheStoreFs;
 import brain.wiki.HttpFetcher;
 import brain.wiki.LogAppender;
@@ -54,6 +55,11 @@ public class BrainServerConfig {
     @Bean
     public GraphBuilder graphBuilder(WikiStore wikiStore, GraphStoreSqlite graphStoreSqlite) {
         return new GraphBuilder(wikiStore, graphStoreSqlite);
+    }
+
+    @Bean
+    public GraphTraversal graphTraversal(GraphStoreSqlite graphStoreSqlite) {
+        return new GraphTraversal(graphStoreSqlite);
     }
 
     public static Path expand(String raw) {
