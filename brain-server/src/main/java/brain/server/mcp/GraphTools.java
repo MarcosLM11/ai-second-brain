@@ -1,15 +1,20 @@
 package brain.server.mcp;
 
-import brain.core.model.WikiPage;
+import brain.core.model.GraphAnalysis;
 import brain.core.port.WikiStore;
+import brain.graph.GraphAnalyzer;
 import brain.graph.GraphBuilder;
+import brain.graph.GraphReportWriter;
+import brain.graph.GraphStoreSqlite;
 import brain.graph.GraphTraversal;
-import brain.wiki.WikilinkExtractor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * MCP tools for graph-based wiki traversal.
@@ -20,11 +25,39 @@ public class GraphTools {
     private final WikiStore wikiStore;
     private final GraphBuilder graphBuilder;
     private final GraphTraversal graphTraversal;
+    private final GraphAnalyzer graphAnalyzer;
+    private final GraphStoreSqlite graphStore;
+    private final GraphReportWriter graphReportWriter;
 
-    public GraphTools(WikiStore wikiStore, GraphBuilder graphBuilder, GraphTraversal graphTraversal) {
+    @Value("${brain.graph.god-nodes-top-n:10}")
+    int godNodesTopN;
+
+    @Value("${brain.graph.community-count:5}")
+    int communityCount;
+
+    @Value("${brain.graph.surprise-min-conf:0.7}")
+    double surpriseMinConf;
+
+    @Value("${brain.wiki-root:~/brain/wiki}")
+    private String wikiRootRaw;
+
+    private Path wikiRoot;
+
+    @PostConstruct
+    void init() {
+        wikiRoot = wikiRootRaw.startsWith("~/")
+            ? Path.of(System.getProperty("user.home"), wikiRootRaw.substring(2))
+            : Path.of(wikiRootRaw);
+    }
+
+    public GraphTools(WikiStore wikiStore, GraphBuilder graphBuilder, GraphTraversal graphTraversal,
+                      GraphAnalyzer graphAnalyzer, GraphStoreSqlite graphStore, GraphReportWriter graphReportWriter) {
         this.wikiStore = wikiStore;
         this.graphBuilder = graphBuilder;
         this.graphTraversal = graphTraversal;
+        this.graphAnalyzer = graphAnalyzer;
+        this.graphStore = graphStore;
+        this.graphReportWriter = graphReportWriter;
     }
 
     @Tool(description = """
@@ -59,6 +92,42 @@ public class GraphTools {
             return e.getMessage();
         } catch (Exception e) {
             return "Error querying graph: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = """
+        Analyze the knowledge graph: computes god nodes (high betweenness centrality),
+        detects communities (Girvan-Newman clustering), finds surprise cross-community connections,
+        and builds an expertise map. Also writes GRAPH_REPORT.md to the wiki root.
+        Returns a JSON representation of GraphAnalysis.
+        Returns an error message if the graph has not been built yet (run graph_build first).
+        """)
+    public String graph_analyze() {
+        try {
+            GraphAnalysis analysis = graphAnalyzer.analyze(graphStore, godNodesTopN, communityCount, surpriseMinConf);
+            graphReportWriter.write(analysis);
+            return new ObjectMapper().writeValueAsString(analysis);
+        } catch (IllegalStateException e) {
+            return e.getMessage();
+        } catch (Exception e) {
+            return "Error analyzing graph: " + e.getMessage();
+        }
+    }
+
+    @Tool(description = """
+        Read the content of GRAPH_REPORT.md from the wiki root.
+        Returns the markdown content of the last generated graph analysis report.
+        Returns an error message if the report has not been generated yet (run graph_analyze first).
+        """)
+    public String graph_report_read() {
+        try {
+            Path reportPath = wikiRoot.resolve("GRAPH_REPORT.md");
+            if (!Files.exists(reportPath)) {
+                return "GRAPH_REPORT.md not found. Run graph_analyze first.";
+            }
+            return Files.readString(reportPath);
+        } catch (Exception e) {
+            return "Error reading graph report: " + e.getMessage();
         }
     }
 }

@@ -9,7 +9,6 @@ import brain.core.port.GraphStore;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultWeightedEdge;
-
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;

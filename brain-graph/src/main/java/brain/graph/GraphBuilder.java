@@ -6,7 +6,6 @@ import brain.core.model.GraphEdge;
 import brain.core.model.GraphNode;
 import brain.core.port.WikiStore;
 import brain.wiki.WikilinkExtractor;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;

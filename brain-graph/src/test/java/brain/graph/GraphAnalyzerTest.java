@@ -5,7 +5,6 @@ import brain.core.model.EdgeType;
 import brain.core.model.GraphEdge;
 import brain.core.model.GraphNode;
 import brain.core.model.NodeType;
-import brain.core.model.SurpriseEdge;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -13,8 +12,8 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GraphAnalyzerTest {
 
@@ -254,5 +253,52 @@ class GraphAnalyzerTest {
                 .extracting(n -> n.community())
                 .isNotEqualTo(-1);
         }
+    }
+
+    // ---- analyze() ----
+
+    @Test
+    void analyzeGodNodesNotEmptyAndRespectTopN() {
+        var s = buildTwoClusterStore(tempDir);
+        var analysis = analyzer.analyze(s, 3, 2, 0.5);
+
+        assertThat(analysis.godNodes()).isNotEmpty();
+        assertThat(analysis.godNodes().size()).isLessThanOrEqualTo(3);
+    }
+
+    @Test
+    void analyzeCommunitiesHasTwoClusters() {
+        var s = buildTwoClusterStore(tempDir);
+        var analysis = analyzer.analyze(s, 3, 2, 0.5);
+
+        assertThat(analysis.communities()).hasSize(2);
+    }
+
+    @Test
+    void analyzeSurprisesNotNullAndHasBridgeEdges() {
+        var s = buildTwoClusterStore(tempDir);
+        var analysis = analyzer.analyze(s, 3, 2, 0.5);
+
+        assertThat(analysis.surprises()).isNotNull();
+        // p3↔q1 bridge edges are cross-community with weight=1.0 ≥ 0.5
+        assertThat(analysis.surprises().size()).isGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    void analyzeExpertiseMapNotNullAndNotEmpty() {
+        var s = buildTwoClusterStore(tempDir);
+        var analysis = analyzer.analyze(s, 3, 2, 0.5);
+
+        assertThat(analysis.expertiseMap()).isNotNull();
+        assertThat(analysis.expertiseMap()).isNotEmpty();
+    }
+
+    @Test
+    void analyzeThrowsOnEmptyGraph() {
+        var emptyStore = new GraphStoreSqlite(tempDir.resolve("empty_analyze.db"));
+
+        assertThatThrownBy(() -> analyzer.analyze(emptyStore, 3, 2, 0.5))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Graph is empty");
     }
 }

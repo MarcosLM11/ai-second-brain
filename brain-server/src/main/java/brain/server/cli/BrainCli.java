@@ -3,12 +3,11 @@ package brain.server.cli;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-
 import java.nio.file.Path;
 
 @Command(
     name = "brain",
-    subcommands = {ServeCommand.class},
+    subcommands = {ServeCommand.class, ContextCommand.class},
     mixinStandardHelpOptions = true,
     version = "brain 1.0.0",
     description = "AI Second Brain — personal knowledge management system"

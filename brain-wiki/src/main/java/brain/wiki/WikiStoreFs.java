@@ -3,7 +3,6 @@ package brain.wiki;
 import brain.core.model.NodeType;
 import brain.core.model.WikiPage;
 import brain.core.port.WikiStore;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.*;

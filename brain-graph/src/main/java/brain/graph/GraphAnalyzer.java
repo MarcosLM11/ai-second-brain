@@ -1,5 +1,7 @@
 package brain.graph;
 
+import brain.core.model.Community;
+import brain.core.model.GraphAnalysis;
 import brain.core.model.GraphNode;
 import brain.core.model.NodeType;
 import brain.core.model.SurpriseEdge;
@@ -7,12 +9,13 @@ import org.jgrapht.Graph;
 import org.jgrapht.alg.clustering.GirvanNewmanClustering;
 import org.jgrapht.alg.scoring.BetweennessCentrality;
 import org.jgrapht.graph.DefaultWeightedEdge;
-
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class GraphAnalyzer {
 
@@ -71,6 +74,41 @@ public class GraphAnalyzer {
         }
 
         return communityMap;
+    }
+
+    /**
+     * Full analysis: god nodes, communities, surprise edges, and an expertise map.
+     *
+     * @throws IllegalStateException if the graph has not been built yet
+     */
+    public GraphAnalysis analyze(GraphStoreSqlite store, int topN, int communityCount, double minConf) {
+        var graph = store.load();
+
+        if (graph.vertexSet().isEmpty()) {
+            throw new IllegalStateException("Graph is empty. Run graph_build first.");
+        }
+
+        List<GodNode> godNodesList = computeGodNodes(graph, store, topN);
+        Map<String, Integer> communityMap = detectCommunities(graph, store, communityCount);
+
+        Map<Integer, Set<String>> grouped = new HashMap<>();
+        communityMap.forEach((nodeId, cId) -> grouped.computeIfAbsent(cId, k -> new HashSet<>()).add(nodeId));
+        List<Community> communities = grouped.entrySet().stream()
+            .map(e -> new Community(e.getKey(), e.getValue()))
+            .sorted(Comparator.comparingInt(Community::id))
+            .toList();
+
+        List<SurpriseEdge> surprises = findSurprises(graph, communityMap, minConf);
+
+        var bc = new BetweennessCentrality<>(graph);
+        Map<String, Double> expertiseMap = bc.getScores();
+
+        return new GraphAnalysis(
+            godNodesList.stream().map(GodNode::node).toList(),
+            communities,
+            surprises,
+            expertiseMap
+        );
     }
 
     /**

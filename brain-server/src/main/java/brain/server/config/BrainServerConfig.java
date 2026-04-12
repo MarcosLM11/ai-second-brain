@@ -2,7 +2,9 @@ package brain.server.config;
 
 import brain.core.port.CacheStore;
 import brain.core.port.WikiStore;
+import brain.graph.GraphAnalyzer;
 import brain.graph.GraphBuilder;
+import brain.graph.GraphReportWriter;
 import brain.graph.GraphStoreSqlite;
 import brain.graph.GraphTraversal;
 import brain.wiki.CacheStoreFs;
@@ -12,7 +14,6 @@ import brain.wiki.WikiStoreFs;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import java.nio.file.Path;
 
 @Configuration
@@ -60,6 +61,16 @@ public class BrainServerConfig {
     @Bean
     public GraphTraversal graphTraversal(GraphStoreSqlite graphStoreSqlite) {
         return new GraphTraversal(graphStoreSqlite);
+    }
+
+    @Bean
+    public GraphAnalyzer graphAnalyzer() {
+        return new GraphAnalyzer();
+    }
+
+    @Bean
+    public GraphReportWriter graphReportWriter() {
+        return new GraphReportWriter(expand(wikiRootRaw));
     }
 
     public static Path expand(String raw) {
