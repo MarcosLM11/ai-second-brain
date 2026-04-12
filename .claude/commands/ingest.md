@@ -17,6 +17,7 @@ Then call `cache_check` with that hash. The response is JSON:
 ## 3. Fetch content
 - If the source starts with `https://`: call `fetch_url`.
 - If the source is a local path ending in `.md` or `.txt`: call `fetch_file`.
+- If the source is a local path ending in `.pdf`: call `fetch_file`. The server will automatically extract the text from the PDF. If the PDF contains no selectable text (e.g. scanned image), `fetch_file` returns an ERROR string — stop and inform the user that the PDF must have selectable text for ingestion.
 - If `fetch_url` or `fetch_file` returns an ERROR string: stop and report the error to the user.
 
 ## 4. Read wiki index

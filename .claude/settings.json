@@ -19,6 +19,16 @@
           }
         ]
       }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/marcos/Projects/Software-Engineer/ai-second-brain/pre-compact.sh"
+          }
+        ]
+      }
     ]
   }
 }

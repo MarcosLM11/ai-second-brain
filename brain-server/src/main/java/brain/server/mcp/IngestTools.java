@@ -1,6 +1,8 @@
 package brain.server.mcp;
 
 import brain.core.port.CacheStore;
+import brain.server.config.BrainServerConfig;
+import brain.wiki.PdfExtractor;
 import brain.wiki.UrlFetcher;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -49,19 +51,31 @@ public class IngestTools {
     }
 
     @Tool(description = """
-        Read a local .md or .txt file and return its content.
+        Read a local file and return its content as plain text.
+        Supports .md, .txt, and .pdf files.
         Accepts absolute paths or paths starting with ~/
+        PDF files are automatically processed with text extraction.
+        PDFs without selectable text return an ERROR string.
         """)
     public String fetch_file(
-        @ToolParam(description = "Absolute or ~/ path to a .md or .txt file") String path
+        @ToolParam(description = "Absolute or ~/ path to a .md, .txt, or .pdf file") String path
     ) {
         Path resolved = expandPath(path);
         String filename = resolved.getFileName().toString();
-        if (!filename.endsWith(".md") && !filename.endsWith(".txt")) {
-            return "ERROR: Only .md and .txt files are supported. Got: " + filename;
+        if (!filename.endsWith(".md") && !filename.endsWith(".txt") && !filename.endsWith(".pdf")) {
+            return "ERROR: Only .md, .txt, and .pdf files are supported. Got: " + filename;
         }
         if (!Files.exists(resolved)) {
             return "ERROR: File not found: " + resolved;
+        }
+        if (filename.endsWith(".pdf")) {
+            try {
+                return PdfExtractor.extractText(resolved);
+            } catch (IllegalStateException e) {
+                return "ERROR: " + e.getMessage();
+            } catch (IOException e) {
+                return "ERROR reading PDF: " + e.getMessage();
+            }
         }
         try {
             return Files.readString(resolved);
@@ -77,7 +91,7 @@ public class IngestTools {
         Use this as the canonical key for cache_check and cache_set.
         """)
     public String source_hash(
-        @ToolParam(description = "HTTPS URL or absolute/~/ path to a .md or .txt file") String source
+        @ToolParam(description = "HTTPS URL or absolute/~/ path to a .md, .txt, or .pdf file") String source
     ) {
         try {
             byte[] content;
@@ -132,9 +146,6 @@ public class IngestTools {
     }
 
     private static Path expandPath(String raw) {
-        if (raw.startsWith("~/")) {
-            return Path.of(System.getProperty("user.home"), raw.substring(2));
-        }
-        return Path.of(raw);
+        return BrainServerConfig.expand(raw);
     }
 }
