@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.mgmt)
+    alias(libs.plugins.graalvm.native)
 }
 
 dependencyManagement {
@@ -16,6 +17,7 @@ dependencies {
     implementation(project(":brain-ai"))
     implementation(project(":brain-search"))
 
+    implementation(libs.jgrapht.io)
     implementation(libs.spring.boot.starter)
     implementation(libs.spring.ai.anthropic.starter)
     implementation(libs.spring.ai.mcp.server.starter)
@@ -30,4 +32,19 @@ dependencies {
 
 tasks.withType<Test> {
     jvmArgs("-Dnet.bytebuddy.experimental=true")
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("brain")
+            mainClass.set("brain.server.BrainApplication")
+            buildArgs.addAll(
+                "--initialize-at-run-time=org.sqlite.NativeDB",
+                "-H:+ReportExceptionStackTraces",
+                "--no-fallback"
+            )
+        }
+    }
+    toolchainDetection.set(false)
 }

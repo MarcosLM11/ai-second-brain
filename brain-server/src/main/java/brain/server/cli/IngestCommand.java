@@ -8,6 +8,7 @@ import brain.core.config.ModelConfig;
 import brain.graph.CacheStoreSqlite;
 import brain.graph.GraphBuilder;
 import brain.graph.GraphStoreSqlite;
+import brain.graph.UsageTracker;
 import brain.wiki.WikiStoreFs;
 import org.springframework.ai.anthropic.AnthropicChatModel;
 import org.springframework.ai.anthropic.AnthropicChatOptions;
@@ -154,6 +155,12 @@ public class IngestCommand implements Runnable {
             var graphStore = new GraphStoreSqlite(config.graphDbPath());
             var graphBuilder = new GraphBuilder(wikiStore, graphStore);
             graphBuilder.build(false);
+
+            // Track usage (estimated tokens: 1 token ≈ 4 chars)
+            var usageTracker = new UsageTracker(config.graphDbPath());
+            int inputEst  = content.length() / 4 + (wikiIndex.length() / 4);
+            int outputEst = (created + updated) * 300; // ~300 tokens per generated page
+            usageTracker.record("ingest", config.models().extractionModel(), inputEst, outputEst);
 
             System.out.printf("[brain ingest] Done: %d created, %d updated%n", created, updated);
 

@@ -40,4 +40,14 @@ public class AiConfig {
             .defaultOptions(AnthropicChatOptions.builder().model(model).build())
             .build();
     }
+
+    @Bean
+    @Qualifier("lintSemantic")
+    public ChatClient lintSemanticChatClient(
+            AnthropicChatModel chatModel,
+            @Value("${brain.ai.lint-model:claude-haiku-4-5-20251001}") String model) {
+        return ChatClient.builder(chatModel)
+            .defaultOptions(AnthropicChatOptions.builder().model(model).build())
+            .build();
+    }
 }

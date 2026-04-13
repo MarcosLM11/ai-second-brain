@@ -11,6 +11,7 @@ pdfbox                    = "3.0.3"
 junit                     = "5.11.4"
 assertj                   = "3.27.3"
 mockito                   = "5.15.2"
+graalvm-native            = "0.10.6"
 
 [libraries]
 # Spring Boot
@@ -24,6 +25,7 @@ spring-ai-mcp-server-starter   = { module = "org.springframework.ai:spring-ai-st
 
 # Graph
 jgrapht-core                   = { module = "org.jgrapht:jgrapht-core",                               version.ref = "jgrapht" }
+jgrapht-io                     = { module = "org.jgrapht:jgrapht-io",                                 version.ref = "jgrapht" }
 
 # CLI
 picocli                        = { module = "info.picocli:picocli",                                    version.ref = "picocli" }
@@ -52,3 +54,4 @@ mockito-junit-jupiter          = { module = "org.mockito:mockito-junit-jupiter",
 [plugins]
 spring-boot               = { id = "org.springframework.boot",      version.ref = "spring-boot" }
 spring-dependency-mgmt    = { id = "io.spring.dependency-management", version.ref = "spring-dependency-mgmt" }
+graalvm-native            = { id = "org.graalvm.buildtools.native",  version.ref = "graalvm-native"  }

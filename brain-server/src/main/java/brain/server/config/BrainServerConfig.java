@@ -4,10 +4,12 @@ import brain.core.port.CacheStore;
 import brain.core.port.WikiStore;
 import brain.graph.CacheStoreSqlite;
 import brain.graph.GraphAnalyzer;
+import brain.graph.UsageTracker;
 import brain.graph.GraphBuilder;
 import brain.graph.GraphReportWriter;
 import brain.graph.GraphStoreSqlite;
 import brain.graph.GraphTraversal;
+import brain.search.SearchEngine;
 import brain.search.SearchIndexer;
 import brain.wiki.HttpFetcher;
 import brain.wiki.LintReportWriter;
@@ -89,6 +91,16 @@ public class BrainServerConfig {
     @Bean
     public SearchIndexer searchIndexer() {
         return new SearchIndexer(expand(graphDbRaw));
+    }
+
+    @Bean
+    public SearchEngine searchEngine() {
+        return new SearchEngine(expand(graphDbRaw));
+    }
+
+    @Bean
+    public UsageTracker usageTracker() {
+        return new UsageTracker(expand(graphDbRaw));
     }
 
     public static Path expand(String raw) {
