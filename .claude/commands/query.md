@@ -5,8 +5,17 @@ Question: $ARGUMENTS
 Follow these steps exactly, in order:
 
 ## 1. Find relevant pages
+
+**First**, call `wiki_index_read` to get the total page count (count the lines in the index).
+
+**If the wiki has ≤ 100 pages (small wiki — standard flow):**
 Call `graph_query` with the question text and `maxPages: 8`.
-- If it returns an empty list: call `wiki_index_read` and pick up to 8 pages whose title or summary seems relevant to the question. If there are still no relevant pages, answer "No hay páginas en la wiki relacionadas con esta pregunta." and stop.
+- If it returns an empty list: pick up to 8 pages from the index whose title or summary seems relevant. If there are still no relevant pages, answer "No hay páginas en la wiki relacionadas con esta pregunta." and stop.
+
+**If the wiki has > 100 pages (large wiki — FTS5 pre-filter):**
+Call `search` with the question text and `limit: 15` to get the most relevant page IDs via BM25.
+- If `search` returns an empty list, fall back to `graph_query` with the question text and `maxPages: 8`.
+- Take the top 8 page IDs from the search results.
 
 ## 2. Read the pages
 For each page ID returned (up to 8), call `wiki_read`.

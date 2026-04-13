@@ -28,12 +28,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * CLI command that exports the knowledge graph to GraphML or JSON.
+ * CLI command that exports the knowledge graph to GraphML, JSON, or HTML.
  *
  * <p>Usage:
  * <pre>
  *   brain export --format=graphml --output=brain_graph.graphml
  *   brain export --format=json    --output=brain_graph.json
+ *   brain export --format=html    --output=brain_graph.html
  * </pre>
  */
 @Command(
@@ -48,7 +49,7 @@ public class ExportCommand implements Runnable {
 
     @Option(
         names = {"--format", "-f"},
-        description = "Export format: graphml | json (default: graphml)",
+        description = "Export format: graphml | json | html (default: graphml)",
         defaultValue = "graphml"
     )
     String format;
@@ -71,8 +72,9 @@ public class ExportCommand implements Runnable {
             String content = switch (format.toLowerCase()) {
                 case "graphml" -> exportGraphML(graph, store);
                 case "json"    -> exportJson(graph, store, edges);
+                case "html"    -> exportHtml(graph, store, edges);
                 default -> {
-                    System.err.println("[brain export] Unknown format: " + format + ". Use graphml or json.");
+                    System.err.println("[brain export] Unknown format: " + format + ". Use graphml, json, or html.");
                     yield null;
                 }
             };
@@ -160,6 +162,225 @@ public class ExportCommand implements Runnable {
         root.set("edges", edgesArray);
 
         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root);
+    }
+
+    private String exportHtml(
+            Graph<String, DefaultWeightedEdge> graph,
+            GraphStoreSqlite store,
+            List<GraphEdge> edges) throws Exception {
+
+        // Build JSON data for the graph
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode data = mapper.createObjectNode();
+        ArrayNode nodesArray = mapper.createArrayNode();
+        for (String nodeId : graph.vertexSet()) {
+            ObjectNode n = mapper.createObjectNode();
+            n.put("id",    escapeJson(nodeId));
+            store.getNode(nodeId).ifPresentOrElse(
+                node -> {
+                    n.put("label",     escapeJson(node.label()));
+                    n.put("type",      escapeJson(node.type().name()));
+                    n.put("community", node.community());
+                },
+                () -> {
+                    n.put("label",     escapeJson(nodeId));
+                    n.put("type",      escapeJson(NodeType.CONCEPT.name()));
+                    n.put("community", -1);
+                }
+            );
+            nodesArray.add(n);
+        }
+        data.set("nodes", nodesArray);
+
+        ArrayNode edgesArray = mapper.createArrayNode();
+        for (GraphEdge edge : edges) {
+            ObjectNode e = mapper.createObjectNode();
+            e.put("source",     escapeJson(edge.from()));
+            e.put("target",     escapeJson(edge.to()));
+            e.put("confidence", edge.confidence());
+            edgesArray.add(e);
+        }
+        data.set("links", edgesArray);
+
+        String graphJson = mapper.writeValueAsString(data);
+
+        return """
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Brain Graph</title>
+              <style>
+                body { margin:0; background:#1a1a2e; color:#eee; font-family:sans-serif; overflow:hidden; }
+                canvas { display:block; }
+                #tooltip {
+                  position:absolute; display:none; background:rgba(0,0,0,.8);
+                  color:#fff; padding:8px 12px; border-radius:6px; font-size:13px;
+                  pointer-events:none; max-width:200px; word-wrap:break-word;
+                }
+                #info { position:absolute; top:10px; left:10px; font-size:12px; opacity:.6; }
+              </style>
+            </head>
+            <body>
+              <canvas id="c"></canvas>
+              <div id="tooltip"></div>
+              <div id="info">Brain Graph — %d nodes — drag to pan, scroll to zoom</div>
+              <script>
+            const GRAPH = %s;
+            // Node type → colour
+            const COLOURS = {
+              CONCEPT:'#4fc3f7', ENTITY:'#aed581', DECISION:'#ffb74d',
+              QUESTION:'#f48fb1', SOURCE:'#ce93d8', DEFAULT:'#90a4ae'
+            };
+            const canvas = document.getElementById('c');
+            const ctx    = canvas.getContext('2d');
+            const tip    = document.getElementById('tooltip');
+
+            let W, H;
+            function resize() {
+              W = canvas.width  = window.innerWidth;
+              H = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // Initialise positions
+            const nodes = GRAPH.nodes.map((n,i) => ({
+              ...n,
+              x: W/2 + (Math.random()-.5)*400,
+              y: H/2 + (Math.random()-.5)*400,
+              vx:0, vy:0, r:8
+            }));
+            const nodeMap = {};
+            nodes.forEach(n => nodeMap[n.id] = n);
+            const links = GRAPH.links
+              .map(l => ({ source: nodeMap[l.source], target: nodeMap[l.target], w: l.confidence }))
+              .filter(l => l.source && l.target);
+
+            // Pan & zoom
+            let px=0, py=0, scale=1, dragging=false, dragStart={x:0,y:0}, panStart={x:0,y:0};
+
+            canvas.addEventListener('wheel', e => {
+              e.preventDefault();
+              const f = e.deltaY < 0 ? 1.1 : 0.9;
+              scale = Math.max(.1, Math.min(5, scale*f));
+            }, {passive:false});
+
+            canvas.addEventListener('mousedown', e => {
+              if (e.button !== 0) return;
+              dragging = true;
+              dragStart = {x:e.clientX, y:e.clientY};
+              panStart  = {x:px, y:py};
+            });
+            window.addEventListener('mouseup',   () => dragging = false);
+            window.addEventListener('mousemove', e => {
+              if (dragging) { px = panStart.x + (e.clientX-dragStart.x); py = panStart.y + (e.clientY-dragStart.y); return; }
+              // Hover tooltip
+              const mx = (e.clientX - px - W/2) / scale, my = (e.clientY - py - H/2) / scale;
+              let hit = null;
+              for (const n of nodes) {
+                const dx=n.x-mx, dy=n.y-my;
+                if (dx*dx+dy*dy < n.r*n.r*4) { hit=n; break; }
+              }
+              if (hit) {
+                tip.style.display='block';
+                tip.style.left = (e.clientX+12)+'px';
+                tip.style.top  = (e.clientY+12)+'px';
+                tip.textContent = hit.label + ' [' + hit.type + ']';
+              } else {
+                tip.style.display='none';
+              }
+            });
+
+            // Click: open wiki page
+            canvas.addEventListener('click', e => {
+              if (Math.abs(e.clientX-dragStart.x)+Math.abs(e.clientY-dragStart.y) > 5) return;
+              const mx = (e.clientX - px - W/2) / scale, my = (e.clientY - py - H/2) / scale;
+              for (const n of nodes) {
+                const dx=n.x-mx, dy=n.y-my;
+                if (dx*dx+dy*dy < n.r*n.r*4) {
+                  window.open(encodeURIComponent(n.id) + '.md', '_blank'); return;
+                }
+              }
+            });
+
+            // Force simulation (Verlet / spring layout)
+            const K = 0.005, REPEL = 3000, DAMP = 0.85;
+            function simulate() {
+              // Repulsion
+              for (let i=0;i<nodes.length;i++) {
+                for (let j=i+1;j<nodes.length;j++) {
+                  const a=nodes[i], b=nodes[j];
+                  let dx=b.x-a.x, dy=b.y-a.y;
+                  const d2=dx*dx+dy*dy+0.01, f=REPEL/d2;
+                  a.vx-=dx*f; a.vy-=dy*f; b.vx+=dx*f; b.vy+=dy*f;
+                }
+              }
+              // Spring attraction
+              for (const l of links) {
+                const dx=l.target.x-l.source.x, dy=l.target.y-l.source.y;
+                const d=Math.sqrt(dx*dx+dy*dy)+0.01;
+                const f=K*(d-80);
+                l.source.vx+=dx/d*f; l.source.vy+=dy/d*f;
+                l.target.vx-=dx/d*f; l.target.vy-=dy/d*f;
+              }
+              // Gravity toward centre
+              for (const n of nodes) {
+                n.vx+=(0-n.x)*0.001; n.vy+=(0-n.y)*0.001;
+                n.vx*=DAMP; n.vy*=DAMP;
+                n.x+=n.vx; n.y+=n.vy;
+              }
+            }
+
+            function draw() {
+              ctx.clearRect(0,0,W,H);
+              ctx.save();
+              ctx.translate(W/2+px, H/2+py);
+              ctx.scale(scale, scale);
+
+              // Links
+              ctx.globalAlpha=0.35;
+              for (const l of links) {
+                ctx.beginPath();
+                ctx.moveTo(l.source.x, l.source.y);
+                ctx.lineTo(l.target.x, l.target.y);
+                ctx.strokeStyle='#aaa';
+                ctx.lineWidth=1/scale;
+                ctx.stroke();
+              }
+              ctx.globalAlpha=1;
+
+              // Nodes
+              for (const n of nodes) {
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
+                ctx.fillStyle = COLOURS[n.type] || COLOURS.DEFAULT;
+                ctx.fill();
+              }
+
+              ctx.restore();
+              simulate();
+              requestAnimationFrame(draw);
+            }
+            draw();
+              </script>
+            </body>
+            </html>
+            """.formatted(graph.vertexSet().size(), graphJson);
+    }
+
+    /** Escapes a string for safe inclusion in JSON string values. */
+    private static String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t")
+                .replace("<", "\\u003c")
+                .replace(">", "\\u003e")
+                .replace("&", "\\u0026");
     }
 
     private BrainConfig loadConfig() throws Exception {
