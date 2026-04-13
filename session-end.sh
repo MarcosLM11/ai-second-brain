@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# session-end.sh — capture session transcript and ingest into the brain wiki
+# session-end.sh — save session transcript as raw source for later ingestion
 # Usage: called automatically via Claude Code Stop hook
+# To process: /ingest ~/brain/raw/sessions/session-<timestamp>.md
 
 set -euo pipefail
 
@@ -10,17 +11,10 @@ if [ -z "${CLAUDE_SESSION_TRANSCRIPT:-}" ]; then
 fi
 
 TIMESTAMP=$(date +%s)
-TRANSCRIPT_FILE="/tmp/brain-session-${TIMESTAMP}.md"
+SESSIONS_DIR="${HOME}/brain/raw/sessions"
+mkdir -p "$SESSIONS_DIR"
 
+TRANSCRIPT_FILE="${SESSIONS_DIR}/session-${TIMESTAMP}.md"
 printf '%s' "$CLAUDE_SESSION_TRANSCRIPT" > "$TRANSCRIPT_FILE"
-
-BRAIN_CLI="${BRAIN_CLI:-brain}"
-
-# Launch ingestion asynchronously so the hook returns immediately
-nohup "$BRAIN_CLI" ingest \
-    --source-type=conversation \
-    --file="$TRANSCRIPT_FILE" \
-    --async \
-    > "/tmp/brain-ingest-${TIMESTAMP}.log" 2>&1 &
 
 exit 0

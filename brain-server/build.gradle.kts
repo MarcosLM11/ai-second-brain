@@ -14,12 +14,10 @@ dependencies {
     implementation(project(":brain-core"))
     implementation(project(":brain-wiki"))
     implementation(project(":brain-graph"))
-    implementation(project(":brain-ai"))
     implementation(project(":brain-search"))
 
     implementation(libs.jgrapht.io)
     implementation(libs.spring.boot.starter)
-    implementation(libs.spring.ai.anthropic.starter)
     implementation(libs.spring.ai.mcp.server.starter)
     implementation(libs.picocli)
     implementation(libs.picocli.spring.boot.starter)

@@ -1,8 +1,5 @@
 package brain.server.mcp;
 
-import brain.ai.LintSemanticService;
-import brain.ai.SemanticReport;
-import brain.core.port.WikiStore;
 import brain.wiki.LintReportWriter;
 import brain.wiki.LintService;
 import brain.wiki.LintService.BrokenLink;
@@ -25,8 +22,6 @@ public class LintTools {
     private final LintService lintService;
     private final LintReportWriter lintReportWriter;
     private final LogAppender logAppender;
-    private final LintSemanticService lintSemanticService;
-    private final WikiStore wikiStore;
 
     @Value("${brain.wiki-root:~/brain/wiki}")
     private String wikiRootRaw;
@@ -40,14 +35,10 @@ public class LintTools {
             : Path.of(wikiRootRaw);
     }
 
-    public LintTools(LintService lintService, LintReportWriter lintReportWriter,
-                     LogAppender logAppender, LintSemanticService lintSemanticService,
-                     WikiStore wikiStore) {
+    public LintTools(LintService lintService, LintReportWriter lintReportWriter, LogAppender logAppender) {
         this.lintService = lintService;
         this.lintReportWriter = lintReportWriter;
         this.logAppender = logAppender;
-        this.lintSemanticService = lintSemanticService;
-        this.wikiStore = wikiStore;
     }
 
     @Tool(description = """
@@ -100,29 +91,4 @@ public class LintTools {
         }
     }
 
-    @Tool(description = """
-        Run a semantic lint on the wiki using Claude Haiku. Detects:
-        - potential duplicate pages (similar titles that may refer to the same concept)
-        - concepts mentioned frequently without a dedicated wiki page
-        - 3-5 questions whose answers would fill knowledge gaps
-        This is an AI-powered analysis and may take a few seconds.
-        Returns a JSON object: {duplicatePairs: [], conceptsWithoutPage: [], gapQuestions: []}
-        """)
-    public String lint_semantic() {
-        try {
-            var pages = wikiStore.listAll();
-            List<String> titles = pages.stream()
-                .map(p -> p.id() + " — " + p.title())
-                .collect(Collectors.toList());
-            String contentSample = pages.stream()
-                .map(p -> p.content().substring(0, Math.min(200, p.content().length())))
-                .collect(Collectors.joining("\n---\n"));
-            SemanticReport report = lintSemanticService.analyse(titles, contentSample);
-            logAppender.append("lint_semantic: %d duplicate pairs, %d concepts without page, %d gap questions"
-                .formatted(report.duplicatePairs().size(), report.conceptsWithoutPage().size(), report.gapQuestions().size()));
-            return new ObjectMapper().writeValueAsString(report);
-        } catch (Exception e) {
-            return "Error running semantic lint: " + e.getMessage();
-        }
-    }
 }

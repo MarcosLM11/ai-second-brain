@@ -18,7 +18,7 @@ Display the results to the user in a readable format:
 ## 2. Offer semantic analysis
 
 After showing the structural results, ask the user:
-> ¿Quieres ejecutar también el análisis semántico? Detecta posibles páginas duplicadas, conceptos sin página y gaps de conocimiento. Requiere una llamada a Claude Haiku (~5s). (sí/no)
+> ¿Quieres ejecutar también el análisis semántico? Detecta posibles páginas duplicadas, conceptos sin página y gaps de conocimiento. (sí/no)
 
 **If the user says no:** skip to step 4 (write report with structural data only).
 
@@ -26,12 +26,12 @@ After showing the structural results, ask the user:
 
 ## 3. Semantic lint (optional, with confirmation)
 
-Call `lint_semantic`.
+Call `wiki_list` (without filters) to retrieve all page titles and IDs.
 
-This uses Claude Haiku to detect:
-- Pairs of pages that may be duplicates (similar titles)
-- Concepts mentioned frequently but lacking a dedicated page
-- 3–5 questions whose answers would fill knowledge gaps
+Then analyse this data yourself to detect:
+- **Duplicate pairs**: pages with very similar titles or topics that may refer to the same concept.
+- **Concepts without dedicated page**: concepts that appear frequently in page titles or content but lack their own page.
+- **Gap questions**: 3–5 questions whose answers would fill knowledge gaps in the wiki.
 
 Display the semantic results to the user:
 - Duplicate pairs (if any)

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# pre-compact.sh — capture context before compaction and ingest into the brain wiki
+# pre-compact.sh — save context before compaction as raw source for later ingestion
 # Usage: called automatically via Claude Code PreCompact hook
+# To process: /ingest ~/brain/raw/sessions/precompact-<timestamp>.md
 
 set -euo pipefail
 
@@ -10,17 +11,10 @@ if [ -z "${CLAUDE_CONTEXT:-}" ]; then
 fi
 
 TIMESTAMP=$(date +%s)
-CONTEXT_FILE="/tmp/brain-precompact-${TIMESTAMP}.md"
+SESSIONS_DIR="${HOME}/brain/raw/sessions"
+mkdir -p "$SESSIONS_DIR"
 
+CONTEXT_FILE="${SESSIONS_DIR}/precompact-${TIMESTAMP}.md"
 printf '%s' "$CLAUDE_CONTEXT" > "$CONTEXT_FILE"
-
-BRAIN_CLI="${BRAIN_CLI:-brain}"
-
-# Launch ingestion asynchronously so the hook returns immediately
-nohup "$BRAIN_CLI" ingest \
-    --source-type=conversation \
-    --file="$CONTEXT_FILE" \
-    --async \
-    > "/tmp/brain-ingest-precompact-${TIMESTAMP}.log" 2>&1 &
 
 exit 0
